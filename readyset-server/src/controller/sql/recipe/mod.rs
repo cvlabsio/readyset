@@ -222,4 +222,9 @@ impl Recipe {
     pub(crate) fn supports_pagination(&self) -> bool {
         self.mir_config().allow_paginate && self.mir_config().allow_topk
     }
+
+    /// Returns true only if this recipe supports mixed comparisons
+    pub(crate) fn supports_mixed_comparisons(&self) -> bool {
+        self.mir_config().allow_mixed_comparisons
+    }
 }

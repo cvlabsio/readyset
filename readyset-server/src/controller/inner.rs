@@ -530,6 +530,11 @@ impl Leader {
                 let supports = ds.recipe.supports_pagination();
                 return_serialized!(supports)
             }
+            (&Method::GET | &Method::POST, "/supports_mixed_comparisons") => {
+                let ds = self.dataflow_state_handle.read().await;
+                let supports = ds.recipe.supports_mixed_comparisons();
+                return_serialized!(supports)
+            }
             (&Method::POST, "/evict_single") => {
                 let body: Option<SingleKeyEviction> = bincode::deserialize(&body)?;
                 let ds = self.dataflow_state_handle.read().await;

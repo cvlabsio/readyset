@@ -484,6 +484,7 @@ impl Change {
     pub fn from_cache_ddl_request(
         ddl_req: &CacheDDLRequest,
         server_supports_pagination: bool,
+        server_supports_mixed_comparisons: bool,
     ) -> ReadySetResult<Self> {
         macro_rules! mk_error {
             ($str:expr) => {
@@ -532,6 +533,7 @@ impl Change {
                         adapter_rewrites::process_query(
                             &mut statement,
                             server_supports_pagination,
+                            server_supports_mixed_comparisons,
                         )?;
 
                         Change::CreateCache(CreateCache {

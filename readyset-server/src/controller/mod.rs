@@ -857,18 +857,26 @@ impl Controller {
         &self,
         ddl_reqs: Vec<CacheDDLRequest>,
     ) -> ReadySetResult<Vec<ChangeList>> {
-        let server_supports_pagination = if let Some(ref inner) = *self.inner.read().await {
-            let ds = inner.dataflow_state_handle.read().await;
-            ds.recipe.supports_pagination()
-        } else {
-            return Err(ReadySetError::NotLeader);
-        };
+        let (server_supports_pagination, server_supports_mixed_comparisons) =
+            if let Some(ref inner) = *self.inner.read().await {
+                let ds = inner.dataflow_state_handle.read().await;
+                (
+                    ds.recipe.supports_pagination(),
+                    ds.recipe.supports_mixed_comparisons(),
+                )
+            } else {
+                return Err(ReadySetError::NotLeader);
+            };
 
         debug_assert!(
             ddl_reqs
                 .iter()
                 .filter(|req| matches!(
-                    Change::from_cache_ddl_request(req, server_supports_pagination),
+                    Change::from_cache_ddl_request(
+                        req,
+                        server_supports_pagination,
+                        server_supports_mixed_comparisons
+                    ),
                     Ok(Change::Drop { .. })
                 ))
                 .all(|req| req.dialect == ddl_reqs[0].dialect),
@@ -879,7 +887,11 @@ impl Controller {
             ddl_reqs
                 .iter()
                 .filter(|req| matches!(
-                    Change::from_cache_ddl_request(req, server_supports_pagination),
+                    Change::from_cache_ddl_request(
+                        req,
+                        server_supports_pagination,
+                        server_supports_mixed_comparisons
+                    ),
                     Ok(Change::Drop { .. })
                 ))
                 .all(|req| req.schema_search_path.is_empty()),
@@ -890,7 +902,11 @@ impl Controller {
             ddl_reqs
                 .iter()
                 .filter(|req| matches!(
-                    Change::from_cache_ddl_request(req, server_supports_pagination),
+                    Change::from_cache_ddl_request(
+                        req,
+                        server_supports_pagination,
+                        server_supports_mixed_comparisons
+                    ),
                     Ok(Change::CreateCache(_))
                 ))
                 .all(|req| req.dialect == ddl_reqs[0].dialect),
@@ -904,7 +920,11 @@ impl Controller {
         let mut last_was_drop = false;
 
         for ddl_req in ddl_reqs {
-            match Change::from_cache_ddl_request(&ddl_req, server_supports_pagination) {
+            match Change::from_cache_ddl_request(
+                &ddl_req,
+                server_supports_pagination,
+                server_supports_mixed_comparisons,
+            ) {
                 Ok(change) => {
                     let is_drop = matches!(change, Change::Drop { .. });
 

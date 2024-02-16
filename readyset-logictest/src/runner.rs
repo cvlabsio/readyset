@@ -552,6 +552,7 @@ impl TestScript {
         let mut rh = ReadySetHandle::new(authority.clone()).await;
 
         let server_supports_pagination = rh.supports_pagination().await.unwrap();
+        let server_supports_mixed_comparisons = rh.supports_mixed_comparisons().await.unwrap();
         let adapter_start_time = SystemTime::now();
 
         let task = tokio::spawn(async move {
@@ -573,6 +574,7 @@ impl TestScript {
                 },
                 Default::default(),
                 server_supports_pagination,
+                server_supports_mixed_comparisons,
             )
             .await;
             let query_status_cache: &'static _ = Box::leak(Box::new(QueryStatusCache::new()));

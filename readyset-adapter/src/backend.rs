@@ -1094,7 +1094,11 @@ where
         stmt: &nom_sql::SelectStatement,
     ) -> ReadySetResult<(nom_sql::SelectStatement, bool)> {
         let mut rewritten = stmt.clone();
-        adapter_rewrites::process_query(&mut rewritten, self.noria.server_supports_pagination())?;
+        adapter_rewrites::process_query(
+            &mut rewritten,
+            self.noria.server_supports_pagination(),
+            self.noria.server_supports_mixed_comparisons(),
+        )?;
         // Attempt ReadySet unless the query is unsupported or dropped
         let should_do_readyset = !matches!(
             self.state
@@ -1814,7 +1818,11 @@ where
             }
         }
         // Now migrate the new query
-        adapter_rewrites::process_query(&mut stmt, self.noria.server_supports_pagination())?;
+        adapter_rewrites::process_query(
+            &mut stmt,
+            self.noria.server_supports_pagination(),
+            self.noria.server_supports_mixed_comparisons(),
+        )?;
         let migration_state = match self
             .noria
             .handle_create_cached_query(
@@ -2201,6 +2209,7 @@ where
                                 adapter_rewrites::process_query(
                                     &mut stmt,
                                     self.noria.server_supports_pagination(),
+                                    self.noria.server_supports_mixed_comparisons(),
                                 )?;
 
                                 ViewCreateRequest::new(
@@ -2582,6 +2591,7 @@ where
         match adapter_rewrites::process_query(
             &mut q.statement,
             self.noria.server_supports_pagination(),
+            self.noria.server_supports_mixed_comparisons(),
         ) {
             Ok(processed_query_params) => {
                 let s = self.state.query_status_cache.query_status(q);

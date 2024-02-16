@@ -693,6 +693,9 @@ where
             && options
                 .server_worker_options
                 .enable_experimental_paginate_support;
+        let server_supports_mixed_comparisons = options
+            .server_worker_options
+            .enable_experimental_mixed_comparisons;
         let no_upstream_connections = options.no_upstream_connections;
 
         let rh = rt.block_on(async {
@@ -964,6 +967,7 @@ where
                         parse_dialect,
                         schema_search_path,
                         server_supports_pagination,
+                        server_supports_mixed_comparisons,
                     )
                     .instrument(connection.in_scope(|| {
                         span!(Level::DEBUG, "Building migration task noria connector")
@@ -1148,6 +1152,7 @@ where
                                     parse_dialect,
                                     ssp.clone(),
                                     server_supports_pagination,
+                                    server_supports_mixed_comparisons,
                                 )
                                 .instrument(debug_span!("Building noria connector"))
                                 .await;

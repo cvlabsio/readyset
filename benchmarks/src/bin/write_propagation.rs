@@ -107,6 +107,7 @@ impl Writer {
         let view_name_cache = SharedCache::new();
         let view_cache = SharedCache::new();
         let server_supports_pagination = ch.supports_pagination().await?;
+        let server_supports_mixed_comparisons = ch.supports_mixed_comparisons().await?;
         let (dialect, nom_sql_dialect) = match DatabaseURL::from_str(&self.database_url)? {
             DatabaseURL::MySQL(_) => (Dialect::DEFAULT_MYSQL, nom_sql::Dialect::MySQL),
             DatabaseURL::PostgreSQL(_) => {
@@ -124,6 +125,7 @@ impl Writer {
             nom_sql_dialect,
             vec![],
             server_supports_pagination,
+            server_supports_mixed_comparisons,
         )
         .await;
 

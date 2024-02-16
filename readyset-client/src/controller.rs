@@ -930,6 +930,11 @@ impl ReadySetHandle {
     );
 
     simple_request!(
+        /// Returns true if mixed comparisons are enabled on the server
+        supports_mixed_comparisons() -> bool
+    );
+
+    simple_request!(
         /// Returns the server's release version
         version() -> String
     );

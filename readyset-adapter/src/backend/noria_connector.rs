@@ -65,6 +65,10 @@ pub struct NoriaBackendInner {
     /// The server can handle (non-parameterized) LIMITs and (parameterized) OFFSETs in the
     /// dataflow graph
     server_supports_pagination: bool,
+    /// The server allows both equals and range comparisons to be parameterized in a query. If this
+    /// flag is true, both equals and range parameters in supported positions will be
+    /// autoparameterized during the adapter rewrite passes.
+    server_supports_mixed_comparisons: bool,
 }
 
 macro_rules! noria_await {
@@ -81,12 +85,14 @@ impl NoriaBackendInner {
         ch: ReadySetHandle,
         views: LocalCache<Relation, View>,
         server_supports_pagination: bool,
+        server_supports_mixed_comparisons: bool,
     ) -> Self {
         NoriaBackendInner {
             tables: BTreeMap::new(),
             views,
             noria: ch,
             server_supports_pagination,
+            server_supports_mixed_comparisons,
         }
     }
 
@@ -366,6 +372,7 @@ impl NoriaConnector {
         parse_dialect: nom_sql::Dialect,
         schema_search_path: Vec<SqlIdentifier>,
         server_supports_pagination: bool,
+        server_supports_mixed_comparisons: bool,
     ) -> Self {
         NoriaConnector::new_with_local_reads(
             ch,
@@ -378,6 +385,7 @@ impl NoriaConnector {
             parse_dialect,
             schema_search_path,
             server_supports_pagination,
+            server_supports_mixed_comparisons,
         )
         .await
     }
@@ -394,8 +402,15 @@ impl NoriaConnector {
         parse_dialect: nom_sql::Dialect,
         schema_search_path: Vec<SqlIdentifier>,
         server_supports_pagination: bool,
+        server_supports_mixed_comparisons: bool,
     ) -> Self {
-        let backend = NoriaBackendInner::new(ch, view_cache, server_supports_pagination).await;
+        let backend = NoriaBackendInner::new(
+            ch,
+            view_cache,
+            server_supports_pagination,
+            server_supports_mixed_comparisons,
+        )
+        .await;
 
         NoriaConnector {
             inner: NoriaBackend {
@@ -559,6 +574,14 @@ impl NoriaConnector {
             .inner
             .as_ref()
             .map(|v| v.server_supports_pagination)
+            .unwrap_or(false)
+    }
+
+    pub(crate) fn server_supports_mixed_comparisons(&self) -> bool {
+        self.inner
+            .inner
+            .as_ref()
+            .map(|v| v.server_supports_mixed_comparisons)
             .unwrap_or(false)
     }
 
@@ -1414,8 +1437,11 @@ impl NoriaConnector {
             .collect();
 
         trace!("select::collapse where-in clauses");
-        let processed_query_params =
-            adapter_rewrites::process_query(&mut statement, self.server_supports_pagination())?;
+        let processed_query_params = adapter_rewrites::process_query(
+            &mut statement,
+            self.server_supports_pagination(),
+            self.server_supports_mixed_comparisons(),
+        )?;
 
         // check if we already have this query prepared
         trace!("select::access view");
